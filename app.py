@@ -84,3 +84,34 @@ if st.button("Run AI Training & Analysis"):
             }).sort_values(by='Importance', ascending=False)
             
             st.bar_chart(importance.set_index('Feature'))
+
+    
+st.divider()
+st.header("Interactive Fraud Simulator")
+
+col_a, col_b = st.columns(2)
+with col_a:
+    input_type = st.selectbox("Transaction Type", ["TRANSFER", "CASH_OUT", "PAYMENT", "DEBIT"])
+    input_amt = st.number_input("Transaction Amount ($)", min_value=0.0, value=1000.0)
+with col_b:
+    input_old_bal = st.number_input("Current Account Balance ($)", min_value=0.0, value=5000.0)
+    input_new_bal = input_old_bal - input_amt
+
+if st.button("Run Investigation"):
+    if 'model' in locals() or 'model' in globals():
+        test_data = {
+            'step': 1,
+            'type': input_type,
+            'amount': input_amt,
+            'oldbalanceOrg': input_old_bal,
+            'newbalanceOrig': input_new_bal
+        }
+        
+        risk_score = predict_single_transaction(model, le, test_data)
+        
+        if risk_score > 0.5:
+            st.error(f"HIGH RISK: {risk_score:.2%} Probability of Fraud!")
+        else:
+            st.success(f"LOW RISK: {risk_score:.2%} Probability of Fraud.")
+    else:
+        st.warning("Please run the AI Training above first!")
