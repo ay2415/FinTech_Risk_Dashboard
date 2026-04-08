@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from data_loader import get_clean_data
-from analysis import calculate_risk_metrics, get_fraud_stats
+from analysis import calculate_risk_metrics, get_fraud_stats, prepare_model_data
 
 st.set_page_config(page_title="FinTech Risk Monitor", layout="wide")
 
@@ -54,3 +54,33 @@ if not filtered_df.empty:
         st.warning("No data matches the selected filters.")
 else:
     st.warning("Please select at least one transaction type in the sidebar.")
+
+
+
+st.divider()
+st.header("Machine Learning Intelligence")
+st.info("Click the button below to train the AI on 100,000 transactions to predict fraud.")
+
+if st.button("Run AI Training & Analysis"):
+    with st.spinner("AI is analyzing transaction patterns..."):
+        # Call the 'Brain' function
+        model, report, X_test, y_test = prepare_model_data(df)
+        
+        st.success("AI Training Complete!")
+        
+        # Create columns for results
+        res_col1, res_col2 = st.columns(2)
+        
+        with res_col1:
+            st.subheader("Model Accuracy Report")
+            st.code(report)
+            
+        with res_col2:
+            st.subheader("💡 Top Fraud Indicators")
+            # Calculate which 'Clues' were most important
+            importance = pd.DataFrame({
+                'Feature': ['Step', 'Type', 'Amount', 'Old Balance', 'New Balance', 'Balance Error'],
+                'Importance': model.feature_importances_
+            }).sort_values(by='Importance', ascending=False)
+            
+            st.bar_chart(importance.set_index('Feature'))
