@@ -72,6 +72,4 @@ The application will launch in your default web browser (usually at `http://loca
 
 This project is built around the **PaySim** dataset, which simulates mobile money transactions based on a sample of real transactions extracted from one month of financial logs from a mobile money service implemented in an African country.
 
-## License
 
-[MIT License](LICENSE)
