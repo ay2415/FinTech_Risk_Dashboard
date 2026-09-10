@@ -1,75 +1,86 @@
-# FinTech Risk & Fraud Dashboard
+# FinTech Risk Monitor & Multi-Agent Fraud Investigation System
 
-A real-time, interactive dashboard built with Streamlit to monitor and detect fraudulent financial transactions. This application utilizes Machine Learning (Random Forest) and data visualization techniques to identify suspicious patterns in synthetic financial datasets like PaySim.
+An interactive FinTech dashboard and multi-agent fraud investigation system built with Streamlit, Scikit-Learn, and LLM-powered agentic workflows. The system monitors transactions in real-time, calculates financial invariants, trains predictive ML models, and executes an explainable 4-stage multi-agent investigation pipeline for suspicious transactions.
 
-## Features
+---
 
-- **Real-time Monitoring**: Load and visualize transaction data to monitor risk in real-time.
-- **Global Filters**: Filter transactions by type (e.g., TRANSFER, CASH_OUT, PAYMENT, DEBIT) to analyze specific segments.
-- **Balance Error Analysis**: Detects "Impossible Transactions" where the math doesn't add up `(Old Balance - Amount != New Balance)` and visually highlights discrepancies.
-- **Machine Learning Intelligence**: 
-  - Trains a Random Forest Classifier on the fly to detect fraud.
-  - Generates an interactive Model Accuracy Report and Feature Importance chart to provide transparency on what indicators drive the model's predictions.
-- **Interactive Fraud Simulator**: Allows users to input hypothetical transaction details and receive a real-time risk score and probability of fraud.
+## 🎯 Architecture: 4-Stage Multi-Agent Workflow
 
-## Tech Stack
+```text
+Transaction Data
+       ↓
+[ Agent 1: Detection Agent ]      → Deterministic Python Financial Invariant Checks
+       ↓ (Discrepancies & Facts)
+[ Agent 2: Analysis Agent ]       → LLM Hypothesis Generation (No Confirmation Bias)
+       ↓ (Hypotheses)
+[ Agent 3: Verification Agent ]   → Independent Evidence Cross-Examiner & Risk Tiering
+       ↓ (Audit & Risk Tier)
+[ Agent 4: Reporting Agent ]      → Executive Incident Brief with Actionable Steps
+```
 
-- **Frontend/UI**: [Streamlit](https://streamlit.io/)
-- **Data Manipulation**: [Pandas](https://pandas.pydata.org/)
-- **Machine Learning**: [Scikit-Learn](https://scikit-learn.org/) (Random Forest Classifier) & [XGBoost](https://xgboost.readthedocs.io/) (available in `model_prep.py`)
-- **Data Visualization**: [Plotly Express](https://plotly.com/python/plotly-express/)
+| Agent | Responsibility | Implementation Nature |
+| :--- | :--- | :--- |
+| **Agent 1: Detection Agent** | Evaluates ledger math ($\text{Old} - \text{Amount} = \text{New}$), zero-balance drains, and channel risks. | **100% Deterministic Python** (No LLM for arithmetic). |
+| **Agent 2: Analysis Agent** | Formulates multiple plausible root causes (concurrency race condition, settlement lag, exploit). | **LLM Reasoning** with anti-bias prompts. |
+| **Agent 3: Verification Agent** | Audits analyst claims against raw metrics, checks for hallucinations, and assigns a risk tier (`LOW`, `MEDIUM`, `HIGH`). | **Dual Audit** (Rule-based score + LLM fact check). |
+| **Agent 4: Reporting Agent** | Produces a clean, executive-ready investigation brief with clear remediation actions. | **LLM Structured Synthesis**. |
 
-## Project Structure
+---
+
+## 💡 Core Engineering Principle: Invariant Anomaly vs. Confirmed Fraud
+
+A core design principle of this system is distinguishing between:
+1. **Mathematical Invariant Violation:** $\text{Old Balance} - \text{Amount} \neq \text{New Balance}$
+2. **Definitive Fraud / Attack:** An unsubstantiated conclusion.
+
+> *"A mathematical ledger discrepancy is a high-priority investigation signal (which may arise from distributed race conditions, settlement lags, or data corruption), not automatic proof that an account was hacked."*
+
+---
+
+## 📁 Project Structure
 
 ```text
 FinTech_Risk_Dashboard/
-├── app.py               # Main Streamlit application
-├── analysis.py          # Core logic for risk metrics, model preparation, and prediction
-├── data_loader.py       # Helper script for optimized data loading
-├── model_prep.py        # Alternative XGBoost model training script
-├── data/
-│   └── paysim.csv       # PaySim synthetic transaction dataset (Not included in repo by default)
-└── Screenshots/         # Project screenshots and documentation
+├── app.py                   # Streamlit Frontend & Multi-Agent UI
+├── analysis.py              # Statistical metrics & Random Forest classifier
+├── data_loader.py           # Cached dataset loading
+├── model_prep.py            # XGBoost training utility
+├── requirements.txt         # Project dependencies
+├── agents/                  # Multi-Agent Investigation Layer
+│   ├── __init__.py
+│   ├── detector.py          # Agent 1: Deterministic rule engine
+│   ├── analyst.py           # Agent 2: Multi-hypothesis reasoning
+│   ├── verifier.py          # Agent 3: Independent evidence auditor
+│   ├── reporter.py          # Agent 4: Executive report generator
+│   ├── workflow.py          # Orchestration pipeline
+│   └── llm_client.py        # Lightweight LLM caller (Ollama / OpenAI / Fallback)
+└── data/
+    └── paysim.csv           # PaySim synthetic transaction dataset
 ```
 
-## Setup & Installation
+---
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository_url>
-   cd FinTech_Risk_Dashboard
-   ```
+## 🚀 Setup & Execution
 
-2. **Create a virtual environment** (optional but recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-3. **Install dependencies**:
-   You can install the required libraries by running:
-   ```bash
-   pip install streamlit pandas plotly scikit-learn xgboost
-   ```
-
-4. **Add the Dataset**:
-   Download the [PaySim dataset from Kaggle](https://www.kaggle.com/datasets/ealaxi/paysim1) and place the `paysim.csv` file inside the `data/` directory.
-
-## Usage
-
-Start the Streamlit server to view the dashboard:
-
+### 2. Run the Dashboard
 ```bash
 streamlit run app.py
 ```
+Open `http://localhost:8501` in your browser.
 
-The application will launch in your default web browser (usually at `http://localhost:8501`). Once running, you can:
-1. View global metrics and the balance error scatter plot.
-2. Click **"Run AI Training & Analysis"** to train the risk model and view performance metrics.
-3. Use the **"Interactive Fraud Simulator"** at the bottom to test hypothetical transactions.
+### 3. (Optional) Run with Local Ollama
+Ensure Ollama is running with `llama3.1:8b` or `mistral`:
+```bash
+ollama run llama3.1:8b
+```
+*(Note: If Ollama is offline, the system automatically uses deterministic fallbacks so the app never fails.)*
 
-## Dataset Reference
+---
 
-This project is built around the **PaySim** dataset, which simulates mobile money transactions based on a sample of real transactions extracted from one month of financial logs from a mobile money service implemented in an African country.
-
-
+## 📄 License
+[MIT License](LICENSE)

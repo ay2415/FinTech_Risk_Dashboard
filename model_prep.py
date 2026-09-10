@@ -19,7 +19,7 @@ def prepare_and_train(df):
     # 4. Initialize XGBoost (Industry standard for FinTech)
     model = XGBClassifier(n_estimators=100, max_depth=5, learning_rate=0.1)
     
-    st.write("Training the brain... please wait.")
+    st.write("Training model. please wait.")
     model.fit(X_train, y_train)
     
     return model, X_test, y_test
