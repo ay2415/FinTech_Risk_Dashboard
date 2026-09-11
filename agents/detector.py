@@ -7,6 +7,16 @@ Handles both Outflows (TRANSFER, CASH_OUT, PAYMENT, DEBIT) and Inflows (CASH_IN)
 from typing import Optional, Dict, Any, List
 from behavioral import calculate_user_history, evaluate_behavioral_anomaly
 
+def compute_expected_balance(tx_type: str, old_balance: float, amount: float) -> float:
+    """
+    Computes expected new balance based on transaction flow direction.
+    - Inflows (CASH_IN): Old Balance + Amount
+    - Outflows (TRANSFER, CASH_OUT, PAYMENT, DEBIT): Old Balance - Amount
+    """
+    if tx_type.upper() == "CASH_IN":
+        return round(old_balance + amount, 2)
+    return round(old_balance - amount, 2)
+
 def detect_anomalies(
     transaction: dict, 
     user_history: Optional[Any] = None
@@ -40,14 +50,9 @@ def detect_anomalies(
     # ---------------- 1. FINANCIAL & BALANCE INVARIANTS ----------------
     
     # Invariant A: Balance Math Invariant
-    # For CASH_IN (Money Received / Inflow): Expected New = Old Balance + Amount
-    # For Outflows (TRANSFER, CASH_OUT, PAYMENT, DEBIT): Expected New = Old Balance - Amount
-    if tx_type == "CASH_IN":
-        expected_new_orig = old_bal_orig + amount
-    else:
-        expected_new_orig = old_bal_orig - amount
-        
+    expected_new_orig = compute_expected_balance(tx_type, old_bal_orig, amount)
     orig_balance_error = round(expected_new_orig - new_bal_orig, 2)
+
     
     if abs(orig_balance_error) > 0.01:
         anomalies.append(
