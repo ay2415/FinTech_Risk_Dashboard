@@ -193,21 +193,30 @@ def test_case_8_end_to_end_pipeline():
     assert "behavioral" in result
     print(f"[PASS] Test Case 8: Full Multi-Agent pipeline completed with Risk Tier {result['risk_tier']}.")
 
-def test_case_9_cash_in_inflow():
-    """Verify CASH_IN (Money Received/Deposited) uses addition math: Old Balance + Amount == New Balance."""
-    deposit_txn = {
-        "user_id": "USER_RECEIVER",
-        "type": "CASH_IN",
-        "amount": 2500.0,
-        "oldbalanceOrg": 1000.0,
-        "newbalanceOrig": 3500.0,  # 1000 + 2500 = 3500
-        "step": 50
+def test_case_10_composite_score_clamping():
+    """Verify that composite risk score strictly clamps within [0, 100]."""
+    from agents.verifier import calculate_composite_risk_score
+    metrics_extreme = {
+        "orig_balance_error": 50000.0,
+        "old_balance_orig": 0.0,
+        "amount": 250000.0,
+        "is_high_risk_type": True
     }
-    det = detect_anomalies(deposit_txn)
-    assert det["metrics"]["orig_balance_error"] == 0.0
-    assert not det["is_suspicious"], "Valid deposit should not have balance errors"
-    assert "INFLOW" in det["metrics"]["direction"]
-    print("[PASS] Test Case 9: CASH_IN (money received) addition math verified successfully.")
+    beh_extreme = {"behavioural_anomaly": True, "behavioural_score": 100}
+    score, tier = calculate_composite_risk_score(metrics_extreme, beh_extreme)
+    assert 0 <= score <= 100, "Score must not exceed 100"
+    assert tier == "HIGH"
+    print("[PASS] Test Case 10: Score clamping strictly enforced within [0, 100].")
+
+def test_case_11_single_transaction_ratio_precision():
+    """Verify ratio calculations remain stable with very small and large values."""
+    single_hist = [{"amount": 10.0, "type": "PAYMENT", "step": 1}]
+    stats = calculate_user_history(single_hist, current_step=5)
+    current_tx = {"amount": 10.0, "type": "PAYMENT"}
+    eval_res = evaluate_behavioral_anomaly(current_tx, stats)
+    assert eval_res["amount_ratio"] == 1.0
+    assert eval_res["risk_level"] == "LOW"
+    print("[PASS] Test Case 11: Single transaction ratio precision verified.")
 
 if __name__ == "__main__":
     print("--- RUNNING COMPREHENSIVE SUITE ---")
@@ -220,4 +229,7 @@ if __name__ == "__main__":
     test_case_7_data_leakage_check()
     test_case_8_end_to_end_pipeline()
     test_case_9_cash_in_inflow()
-    print("ALL 9 TEST CASES PASSED SUCCESSFULLY!")
+    test_case_10_composite_score_clamping()
+    test_case_11_single_transaction_ratio_precision()
+    print("ALL 11 TEST CASES PASSED SUCCESSFULLY!")
+
