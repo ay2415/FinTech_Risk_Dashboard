@@ -3,10 +3,17 @@ User Behavioural Anomaly Detection Module.
 Calculates historical baselines (mean, median, max, std, rolling windows)
 strictly prior to the current transaction to prevent data leakage.
 100% deterministic, explainable Python logic without black-box ML dependencies.
+
+Key Metrics Evaluated:
+- Outlier-resistant Historical Median & Arithmetic Mean
+- Sample Standard Deviation (unbiased estimator with n-1 degrees of freedom)
+- Dynamic Rolling Windows: 7-day (168h), 30-day (720h), 90-day (2160h)
+- Z-score & Spending Surge Ratios
 """
 
 import math
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
+
 
 def calculate_user_history(
     past_transactions: List[Dict[str, Any]], 
