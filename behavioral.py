@@ -100,9 +100,22 @@ def calculate_user_history(
     rolling_90d_mean = None
 
     if current_step is not None:
-        amt_7d = [float(tx["amount"]) for tx in past_transactions if "step" in tx and current_step - 168 <= tx["step"] < current_step]
-        amt_30d = [float(tx["amount"]) for tx in past_transactions if "step" in tx and current_step - 720 <= tx["step"] < current_step]
-        amt_90d = [float(tx["amount"]) for tx in past_transactions if "step" in tx and current_step - 2160 <= tx["step"] < current_step]
+        amt_7d, amt_30d, amt_90d = [], [], []
+        step_7d_cutoff = current_step - 168
+        step_30d_cutoff = current_step - 720
+        step_90d_cutoff = current_step - 2160
+
+        for tx in past_transactions:
+            if "step" in tx and "amount" in tx:
+                tx_step = tx["step"]
+                if tx_step < current_step:
+                    val = float(tx["amount"])
+                    if tx_step >= step_7d_cutoff:
+                        amt_7d.append(val)
+                    if tx_step >= step_30d_cutoff:
+                        amt_30d.append(val)
+                    if tx_step >= step_90d_cutoff:
+                        amt_90d.append(val)
 
         if amt_7d:
             rolling_7d_mean = sum(amt_7d) / len(amt_7d)
@@ -110,6 +123,7 @@ def calculate_user_history(
             rolling_30d_mean = sum(amt_30d) / len(amt_30d)
         if amt_90d:
             rolling_90d_mean = sum(amt_90d) / len(amt_90d)
+
 
     return {
         "count": count,
