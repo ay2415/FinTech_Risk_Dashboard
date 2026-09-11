@@ -15,17 +15,10 @@ EVALUATION CRITERIA:
 3. Risk Tier Determination: Assign an objective Risk Tier (LOW, MEDIUM, HIGH) with supporting rationale.
 """
 
-def verify_investigation(detection_result: dict, analysis_result: dict, model_name: str = "llama3.1:8b") -> dict:
+def calculate_composite_risk_score(metrics: dict, behavioral: Optional[dict] = None) -> tuple:
     """
-    Executes the Verification Agent workflow.
+    Computes deterministic multi-factor risk points (0-100) and assigns tier (LOW, MEDIUM, HIGH).
     """
-    metrics = detection_result["metrics"]
-    anomalies = detection_result["anomalies"]
-    raw = detection_result["raw_transaction"]
-    behavioral = detection_result.get("behavioral")
-    analysis_text = analysis_result["analysis_text"]
-
-    # 1. Deterministic baseline risk calculation
     risk_points = 0
     if abs(metrics.get("orig_balance_error", 0.0)) > 0.01:
         risk_points += 35
@@ -38,19 +31,35 @@ def verify_investigation(detection_result: dict, analysis_result: dict, model_na
     if metrics.get("amount", 0.0) >= 200000.0:
         risk_points += 15
 
-    # Integrate Behavioural Anomaly points
+    # Integrate Behavioural Anomaly points (capped at 50)
     if behavioral and behavioral.get("behavioural_anomaly", False):
         beh_score = behavioral.get("behavioural_score", 0)
-        risk_points += int(beh_score * 0.5)  # Up to 50 points from severe behavioral surge
+        risk_points += int(beh_score * 0.5)
 
-    risk_points = min(risk_points, 100)
+    risk_points = max(0, min(risk_points, 100))
 
     if risk_points >= 50:
-        deterministic_tier = "HIGH"
+        tier = "HIGH"
     elif risk_points >= 20:
-        deterministic_tier = "MEDIUM"
+        tier = "MEDIUM"
     else:
-        deterministic_tier = "LOW"
+        tier = "LOW"
+
+    return risk_points, tier
+
+def verify_investigation(detection_result: dict, analysis_result: dict, model_name: str = "llama3.1:8b") -> dict:
+    """
+    Executes the Verification Agent workflow.
+    """
+    metrics = detection_result["metrics"]
+    anomalies = detection_result["anomalies"]
+    raw = detection_result["raw_transaction"]
+    behavioral = detection_result.get("behavioral")
+    analysis_text = analysis_result["analysis_text"]
+
+    # 1. Deterministic baseline risk calculation
+    risk_points, deterministic_tier = calculate_composite_risk_score(metrics, behavioral)
+
 
     # 2. LLM Auditor Verification
     beh_context = ""
