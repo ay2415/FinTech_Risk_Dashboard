@@ -15,6 +15,28 @@ Structure the report cleanly with:
 4. RECOMMENDED ACTION PLAN
 """
 
+def get_recommended_actions(risk_tier: str) -> list:
+    """
+    Returns standard operating remediation actions based on risk tier.
+    """
+    actions = {
+        "HIGH": [
+            "Place temporary 24-hour hold on associated recipient account.",
+            "Escalate to Level-2 Fraud Investigation Unit for ledger trace.",
+            "Review concurrent session logs around the transaction timestamp."
+        ],
+        "MEDIUM": [
+            "Flag transaction for end-of-day batch reconciliation audit.",
+            "Send passive multi-factor authentication (MFA) confirmation to account owner.",
+            "Monitor origin account for subsequent high-velocity outflows."
+        ],
+        "LOW": [
+            "Approve transaction through standard processing queue.",
+            "No manual escalation required."
+        ]
+    }
+    return actions.get(risk_tier.upper(), actions["LOW"])
+
 def generate_report(
     detection_result: dict,
     analysis_result: dict,
@@ -62,24 +84,8 @@ Generate a concise, polished markdown brief for the Risk Operations Director.
         }
 
     # Deterministic fallback structured report
-    actions = {
-        "HIGH": [
-            "Place temporary 24-hour hold on associated recipient account.",
-            "Escalate to Level-2 Fraud Investigation Unit for ledger trace.",
-            "Review concurrent session logs around the transaction timestamp."
-        ],
-        "MEDIUM": [
-            "Flag transaction for end-of-day batch reconciliation audit.",
-            "Send passive multi-factor authentication (MFA) confirmation to account owner.",
-            "Monitor origin account for subsequent high-velocity outflows."
-        ],
-        "LOW": [
-            "Approve transaction through standard processing queue.",
-            "No manual escalation required."
-        ]
-    }
-
-    action_list = "\n".join(f"- {act}" for act in actions.get(risk_tier, actions["LOW"]))
+    recommended = get_recommended_actions(risk_tier)
+    action_list = "\n".join(f"- {act}" for act in recommended)
 
     fallback_report = f"""### 🛡️ FinTech Fraud Investigation Brief
 
@@ -105,3 +111,4 @@ Generate a concise, polished markdown brief for the Risk Operations Director.
         "risk_tier": risk_tier,
         "is_llm_generated": False
     }
+
