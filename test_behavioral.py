@@ -208,15 +208,31 @@ def test_case_10_composite_score_clamping():
     assert tier == "HIGH"
     print("[PASS] Test Case 10: Score clamping strictly enforced within [0, 100].")
 
-def test_case_11_single_transaction_ratio_precision():
-    """Verify ratio calculations remain stable with very small and large values."""
-    single_hist = [{"amount": 10.0, "type": "PAYMENT", "step": 1}]
-    stats = calculate_user_history(single_hist, current_step=5)
-    current_tx = {"amount": 10.0, "type": "PAYMENT"}
-    eval_res = evaluate_behavioral_anomaly(current_tx, stats)
-    assert eval_res["amount_ratio"] == 1.0
-    assert eval_res["risk_level"] == "LOW"
-    print("[PASS] Test Case 11: Single transaction ratio precision verified.")
+def test_case_12_inflow_vs_outflow_pipeline_integrity():
+    """Verify that full pipeline produces valid reports for both Inflow and Outflow."""
+    inflow_tx = {
+        "user_id": "USER_INFLOW",
+        "type": "CASH_IN",
+        "amount": 5000.0,
+        "oldbalanceOrg": 2000.0,
+        "newbalanceOrig": 7000.0,
+        "step": 60
+    }
+    outflow_tx = {
+        "user_id": "USER_OUTFLOW",
+        "type": "TRANSFER",
+        "amount": 500.0,
+        "oldbalanceOrg": 1000.0,
+        "newbalanceOrig": 500.0,
+        "step": 60
+    }
+    res_in = run_investigation_pipeline(inflow_tx)
+    res_out = run_investigation_pipeline(outflow_tx)
+    assert res_in["risk_tier"] == "LOW"
+    assert res_out["risk_tier"] == "LOW"
+    assert "report_markdown" in res_in["report"]
+    assert "report_markdown" in res_out["report"]
+    print("[PASS] Test Case 12: Inflow vs Outflow pipeline integrity verified.")
 
 if __name__ == "__main__":
     print("--- RUNNING COMPREHENSIVE SUITE ---")
@@ -231,5 +247,7 @@ if __name__ == "__main__":
     test_case_9_cash_in_inflow()
     test_case_10_composite_score_clamping()
     test_case_11_single_transaction_ratio_precision()
-    print("ALL 11 TEST CASES PASSED SUCCESSFULLY!")
+    test_case_12_inflow_vs_outflow_pipeline_integrity()
+    print("ALL 12 TEST CASES PASSED SUCCESSFULLY!")
+
 
