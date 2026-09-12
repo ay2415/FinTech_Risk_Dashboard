@@ -4,7 +4,9 @@ Audits both quantitative detection results (financial + behavioral) and AI analy
 Detects hallucinations, unsupported leaps of logic, and assigns calibrated risk tiers.
 """
 
+from typing import Optional
 from agents.llm_client import query_llm
+
 
 SYSTEM_PROMPT = """You are a Quality & Compliance Auditor for Financial Risk Investigations.
 Your role is to independently verify investigation findings from upstream automated agents.
