@@ -221,14 +221,15 @@ beh_eval = evaluate_behavioral_anomaly(
 
 st.markdown("##### 👤 User Historical Baseline Summary")
 bc1, bc2, bc3, bc4, bc5 = st.columns(5)
-bc1.metric("Historical Tx Count", f"{hist_stats['count']}")
-bc2.metric("Historical Median", f"${hist_stats['median']:,.2f}")
-bc3.metric("Historical Max", f"${hist_stats['max']:,.2f}")
-bc4.metric("Amount Ratio", f"{beh_eval['amount_ratio']:.1f}x" if not beh_eval['is_cold_start'] else "N/A (Cold Start)")
+bc1.metric("Historical Tx Count", f"{hist_stats['count']}", help="Total number of prior transactions recorded for this account")
+bc2.metric("Historical Median", f"${hist_stats['median']:,.2f}", help="Outlier-resistant median transaction amount")
+bc3.metric("Historical Max", f"${hist_stats['max']:,.2f}", help="Highest previous single transaction amount")
+bc4.metric("Amount Ratio", f"{beh_eval['amount_ratio']:.1f}x" if not beh_eval['is_cold_start'] else "N/A (Cold Start)", help="Current transaction amount divided by historical median")
 if beh_eval['behavioural_anomaly']:
     bc5.error("⚠️ Anomaly Detected")
 else:
     bc5.success("✅ Baseline Normal")
+
 
 txn_payload = {
     'step': 40,
