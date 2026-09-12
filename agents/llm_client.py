@@ -3,29 +3,36 @@ import json
 import urllib.request
 import urllib.error
 
-_OLLAMA_AVAILABLE = None
+_OLLAMA_MODELS = None
 
-def check_ollama_available(url: str, timeout: float = 1.0) -> bool:
-    global _OLLAMA_AVAILABLE
-    if _OLLAMA_AVAILABLE is not None:
-        return _OLLAMA_AVAILABLE
+def get_installed_ollama_models(timeout: float = 0.2) -> list:
+    global _OLLAMA_MODELS
+    if _OLLAMA_MODELS is not None:
+        return _OLLAMA_MODELS
     try:
-        req = urllib.request.Request("http://localhost:11434/api/tags", headers={"Content-Type": "application/json"})
+        req = urllib.request.Request("http://127.0.0.1:11434/api/tags", headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=timeout) as response:
-            _OLLAMA_AVAILABLE = (response.status == 200)
+            data = json.loads(response.read().decode("utf-8"))
+            _OLLAMA_MODELS = [m.get("name", "") for m in data.get("models", [])]
     except Exception:
-        _OLLAMA_AVAILABLE = False
-    return _OLLAMA_AVAILABLE
+        _OLLAMA_MODELS = []
+    return _OLLAMA_MODELS
 
-def query_llm(prompt: str, system_prompt: str = "", model: str = "llama3.1:8b", timeout: float = 5.0) -> str:
+def check_ollama_available(url: str = "http://127.0.0.1:11434", timeout: float = 0.2) -> bool:
+    return len(get_installed_ollama_models(timeout=timeout)) > 0
+
+def query_llm(prompt: str, system_prompt: str = "", model: str = "llama3.1:8b", timeout: float = 2.0) -> str:
     """
     Lightweight, dependency-free LLM caller.
     Prioritizes local Ollama, then OpenAI API if key is present, 
     with a graceful deterministic fallback if no service is running.
     """
-    # 1. Try Local Ollama (http://localhost:11434)
-    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
-    if check_ollama_available(ollama_url):
+    # 1. Try Local Ollama (http://127.0.0.1:11434)
+    installed_models = get_installed_ollama_models()
+    model_matched = any(m == model or m.startswith(model.split(":")[0]) for m in installed_models)
+    
+    ollama_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
+    if model_matched:
         try:
             payload = {
                 "model": model,

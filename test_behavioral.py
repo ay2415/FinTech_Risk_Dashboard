@@ -1,11 +1,13 @@
 """
-Comprehensive Test Suite for User Behavioural Anomaly Detection & Inflow/Outflow Math.
+Comprehensive Test Suite for User Behavioural Anomaly Detection & Multi-Agent Pipeline.
 Covers: normal, moderate, extreme, cold-start, sparse history,
-high-net-worth baselines, data leakage, and CASH_IN deposits.
+high-net-worth baselines, data leakage, CASH_IN deposits, score clamping,
+ratio stability, and end-to-end pipeline integrity.
 """
 
 from behavioral import calculate_user_history, evaluate_behavioral_anomaly
 from agents.detector import detect_anomalies
+from agents.verifier import calculate_composite_risk_score
 from agents.workflow import run_investigation_pipeline
 
 def test_case_1_normal_transaction():
@@ -106,7 +108,7 @@ def test_case_4_sparse_history():
     res = evaluate_behavioral_anomaly(current_txn, hist_stats)
 
     assert res["historical_count"] == 1
-    assert res["historical_std"] == 0.0  # Cannot compute sample std on n=1
+    assert res["historical_std"] == 0.0
     assert not res["behavioural_anomaly"]
     assert res["risk_level"] == "LOW"
     print("[PASS] Test Case 4: Sparse history (n=1) handled safely without math errors.")
@@ -161,13 +163,12 @@ def test_case_7_data_leakage_check():
         {"amount": 20.0, "type": "PAYMENT", "step": 2},
     ]
     current_txn = {
-        "amount": 10000.0,  # Current huge txn
+        "amount": 10000.0,
         "type": "CASH_OUT",
         "oldbalanceOrg": 10000.0,
         "newbalanceOrig": 0.0,
         "step": 3
     }
-    # Calculate history using strictly past_txns
     hist_stats = calculate_user_history(past_txns, current_step=3)
     assert 10000.0 not in hist_stats["amounts"]
     assert hist_stats["max"] == 20.0, "Current txn must not leak into historical max!"
@@ -193,9 +194,24 @@ def test_case_8_end_to_end_pipeline():
     assert "behavioral" in result
     print(f"[PASS] Test Case 8: Full Multi-Agent pipeline completed with Risk Tier {result['risk_tier']}.")
 
+def test_case_9_cash_in_inflow():
+    """Verify CASH_IN (Money Received/Deposited) uses addition math: Old Balance + Amount == New Balance."""
+    deposit_txn = {
+        "user_id": "USER_RECEIVER",
+        "type": "CASH_IN",
+        "amount": 2500.0,
+        "oldbalanceOrg": 1000.0,
+        "newbalanceOrig": 3500.0,
+        "step": 50
+    }
+    det = detect_anomalies(deposit_txn)
+    assert det["metrics"]["orig_balance_error"] == 0.0
+    assert not det["is_suspicious"], "Valid deposit should not have balance errors"
+    assert "INFLOW" in det["metrics"]["direction"]
+    print("[PASS] Test Case 9: CASH_IN (money received) addition math verified successfully.")
+
 def test_case_10_composite_score_clamping():
     """Verify that composite risk score strictly clamps within [0, 100]."""
-    from agents.verifier import calculate_composite_risk_score
     metrics_extreme = {
         "orig_balance_error": 50000.0,
         "old_balance_orig": 0.0,
@@ -207,6 +223,16 @@ def test_case_10_composite_score_clamping():
     assert 0 <= score <= 100, "Score must not exceed 100"
     assert tier == "HIGH"
     print("[PASS] Test Case 10: Score clamping strictly enforced within [0, 100].")
+
+def test_case_11_single_transaction_ratio_precision():
+    """Verify ratio calculations remain stable with single historical transactions."""
+    single_hist = [{"amount": 10.0, "type": "PAYMENT", "step": 1}]
+    stats = calculate_user_history(single_hist, current_step=5)
+    current_tx = {"amount": 10.0, "type": "PAYMENT"}
+    eval_res = evaluate_behavioral_anomaly(current_tx, stats)
+    assert eval_res["amount_ratio"] == 1.0
+    assert eval_res["risk_level"] == "LOW"
+    print("[PASS] Test Case 11: Single transaction ratio precision verified.")
 
 def test_case_12_inflow_vs_outflow_pipeline_integrity():
     """Verify that full pipeline produces valid reports for both Inflow and Outflow."""
@@ -249,5 +275,3 @@ if __name__ == "__main__":
     test_case_11_single_transaction_ratio_precision()
     test_case_12_inflow_vs_outflow_pipeline_integrity()
     print("ALL 12 TEST CASES PASSED SUCCESSFULLY!")
-
-
